@@ -1,1 +1,7 @@
 Locality-Sensitive Hashing for the Near(est) Neighbors Problem
+==============================================================
+
+This small library implements LSH-kNN with Python and NumPy.
+It's pretty damn fast.  It can handle sparse matrices like a champ.
+
+In sum, you should be using it right now.

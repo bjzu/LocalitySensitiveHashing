@@ -20,14 +20,16 @@ def write_signature(vector, hash_ensemble):
 	"""Turns a raw numeric vector into a signature, which is
 	simply a vector of hash functions with the original vector
 	as the argument."""
-	return np.array([ens(vector) for ens in hash_ensemble])
+	#print [ens(np.array(vector)[0]) for ens in hash_ensemble]
+	return np.array([ens(np.array(vector)[0]) for ens in hash_ensemble])
 
-def write_matrix_signature(multidim_array, hash_ensemble):
-	return np.ndarray([write_signature(v, hash_ensemble) for v in multidim_array])
+def write_matrix_signature(matrix, hash_ensemble):
+	return np.matrix([write_signature(v, hash_ensemble) for v in matrix])
 
-def bin_signature_matrix(multidim_array):
+def bin_signature_matrix(matrix):
 	signature_hash = {}
-	for i, v in enumerate(multidim_array):
+	for i, v in enumerate(matrix):
+		v = tuple(np.array(v)[0])
 		if v not in signature_hash:
 			signature_hash[v] = []
 		signature_hash[v].append(i)
@@ -35,6 +37,7 @@ def bin_signature_matrix(multidim_array):
 
 def lsh_nn(vector, signature_hash, original_data, distance, hash_ensemble):
 	vec_sig = write_signature(vector, hash_ensemble)
+	
 	candidates = signature_hash.get(vec_sig, None)
 	if not candidates:
 		raise Error, "Sadness.  There are no points in this hash. %s." % vec_sig
@@ -50,12 +53,12 @@ if __name__ == "__main__":
 	import numpy as np
 	from time import time
 	# Make a random hash ensemble.
+	dimensions = 1000
 	coord_ensemble = make_lsh_ensemble(make_coordinate_hash, 
-						number_of_functions=100, d=5)
+						number_of_functions=10, d=dimensions)
 	
 	# Generate some random data.
-	a = lambda: np.array([randint(0,20) for i in range(1000)])
-	d = np.array([a() for i in range(20000)])
+	d = np.matrix(np.random.randint(0,2, (100000, dimensions)))
 	
 	# Build a matrix of signatures.
 	print "Let's build a matrix of signatures."
@@ -65,8 +68,14 @@ if __name__ == "__main__":
 	t = time()
 	print "Making the signature hash."
 	a = bin_signature_matrix(s)
-	print "%s seconds for a hash of size %s" % ((time() - t)*60, len(a))
-	import pprint
-	p = pprint.PrettyPrinter(indent=4)
-	p.pprint(a)
+	print "%s seconds for a hash of size %s" % (time() - t, len(a))
+	
+	bins = {}
+	for i in a:
+		l = len(a[i])
+		if l not in bins: bins[l] = 0
+		bins[l] += 1
+	bins = [(v,k) for k,v in bins.items()]
+	bins.sort(reverse=True)
+	
 	
