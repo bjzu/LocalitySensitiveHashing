@@ -1,5 +1,8 @@
 from random import randint
 from scipy.sparse import dok_matrix, csr_matrix
+from distance import jaccard
+
+LSH_NN_matrix_type = "Sparse"
 
 def make_coordinate_hash(d):
 	"""outputs a hash function that returns only one coordinate
@@ -79,10 +82,42 @@ def dense_test():
 		print "%-5s %s" % (v,k)
 
 def sparse_test():
-	dimensions = 100000
-	data_points = 100000
-	a = dok_matrix((dimensions, data_points))
-	print a.shape
+	f = open("otoos11.txt", "r")
+	every_line = []
+	for line in f:
+		line = line.strip().lower()
+		every_line.append(line)
+	every_line = ''.join(every_line)
+	every_line = every_line.split('.')
+	n = len(every_line)
+	dictionary = set()
+	for l in every_line:
+		words = l.split()
+		dictionary.update(set(words))
+	d = len(dictionary)
+	dictionary = dict((word, i) for i, word in enumerate(list(dictionary)))
+	data = dok_matrix((n,d), dtype=np.int32)
+	for j, l in enumerate(every_line):
+		words = l.split()
+		for word in words:
+			data[j, dictionary[word]] = 1
+	data = csr_matrix(data)
+	print dir(data)
+	
+	###################################################################
+	# find average Jaccard distance between completely random points. #
+	###################################################################
+	
+	random_points = np.random.permutation(range(n))
+	random_dists = []
+	for i in random_points:
+		for j in range(i, len(random_points)):
+			if i != j:
+				random_dist = jaccard(data[i,:].toarray()[0], 
+									  data[j,:].toarray()[0])
+				random_dists.append(random_dist)
+	avg_random_dist = sum(random_dists) / float(len(random_dists))
+	print avg_random_dist
 	
 
 if __name__ == "__main__":
