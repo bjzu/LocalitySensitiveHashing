@@ -1,4 +1,5 @@
 from random import randint
+from scipy.sparse import dok_matrix, csr_matrix
 
 def make_coordinate_hash(d):
 	"""outputs a hash function that returns only one coordinate
@@ -49,10 +50,7 @@ def lsh_nn(vector, signature_hash, original_data, distance, hash_ensemble):
 			winning_prototype = c
 	return c
 
-if __name__ == "__main__":
-	import numpy as np
-	from time import time
-	# Make a random hash ensemble.
+def dense_test():
 	dimensions = 1000
 	coord_ensemble = make_lsh_ensemble(make_coordinate_hash, 
 						number_of_functions=10, d=dimensions)
@@ -77,5 +75,19 @@ if __name__ == "__main__":
 		bins[l] += 1
 	bins = [(v,k) for k,v in bins.items()]
 	bins.sort(reverse=True)
+	for v, k in bins:
+		print "%-5s %s" % (v,k)
+
+def sparse_test():
+	dimensions = 100000
+	data_points = 100000
+	a = dok_matrix((dimensions, data_points))
+	print a.shape
 	
+
+if __name__ == "__main__":
+	import numpy as np
+	from time import time
+	#dense_test()
+	sparse_test()
 	
