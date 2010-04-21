@@ -1,24 +1,8 @@
-from random import randint
+from random import randint, shuffle
 from scipy.sparse import dok_matrix, csr_matrix
 from distance import jaccard
 
-LSH_NN_matrix_type = "Sparse"
-
-def make_coordinate_hash(d):
-	"""outputs a hash function that returns only one coordinate
-	of a vector or list, but selects which coordinate randomly
-	in the creation of the function.
-	"""
-	n = randint(0,d-1)
-	def coordinate_hash(v):
-		return v[n]
-	return coordinate_hash
-
-def make_lsh_ensemble(hash_creator, number_of_functions=5, d=None):
-	"""Creates an ensemble of hash functions using 
-	a hash_creator.  You must specify the dimension 
-	of the data you're expecting, d, as well as the number_of_functions."""
-	return [hash_creator(d) for i in range(number_of_functions)]
+#LSH_NN_matrix_type = "Sparse"
 
 def write_signature(vector, hash_ensemble):
 	"""Turns a raw numeric vector into a signature, which is

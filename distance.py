@@ -7,8 +7,8 @@ def sparse_jaccard(x0, x1):
 	return 1 - len(set(x0.indices) and set(x1.indices)) / float((x0 + x1).getnnz())
 
 def quick_jaccard(x0, x1):
+	"""This sadly does not work."""
 	l = x0.shape[0]
-	#weave.inline('printf("%f\\n", *x0);', ['x0'])
 	code = """
 	double num, denom;
 	num = 0.0;
