@@ -1,7 +1,37 @@
-Locality-Sensitive Hashing for the Near(est) Neighbors Problem
-==============================================================
+==============================================================================
+        Locality-Sensitive Hashing for the Near(est) Neighbors Problem
+==============================================================================
 
-This small library implements LSH-kNN with Python and NumPy.
-It's pretty damn fast.  It can handle sparse matrices like a champ.
+This small library implements LSH-kNN with Python and NumPy.  It's pretty damn fast.  It can handle sparse matrices like a champ.  It's thread-safe, and
+has about a bajillion unit tests.  This chick pea was built to last.
 
-In sum, you should be using it right now.
+==============================================================================
+
+Some points to consider:
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+1.) flexiblility is key.  I want to be able to do this:
+	                            
+	# instantiate the object easily, or perhaps make a few.
+	lsh = LSH(hash_fcn = make_sparse_minhash)
+	lsh1 = LSH(hash_fcn = make_coordinate_hash)
+	
+	# this fcn hashes the old data, storing the signatures
+	# and indices in a dictionary (or multiple dictionaries).
+	# there will be bands * per_band signatures for each point.
+	lsh.bin_data(old_data_set, bands = 20, per_band = 5)
+	
+	# this fcn queries the LSH obj to get the indices of
+	# the old data closest to each row of the new data.
+	# should return an np.array of said indices.
+	nns = lsh.return_nearest_neighbors(new_data_set)
+	nears = lsh.return_near_neighbors(new_data_set)
+	
+	# I should be able to manipulate the old data set
+	# and do it all again or add if I want:
+	old_data_set = do_something_to_it(old_data_set)
+	lsh.bin_data(old_data_set, flush=True)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+2.) scalability is the secondary objective. I should be able to implement this
+    in a thread-safe way (since binning should not induce any races), and eventually make it map-reduce friendly. 
