@@ -56,15 +56,15 @@ class LSH_tools(object):
 		of the data you're expecting, d, as well as the number_of_functions."""
 		return [hash_creator(d) for i in range(functions)]
 
-	def write_signature(vector, hash_ensemble):
+	def write_signature(vector):
 		"""Turns a raw numeric vector into a signature, which is
 		simply a vector of hash functions with the original vector
 		as the argument."""
 		#print [ens(np.array(vector)[0]) for ens in hash_ensemble]
-		return np.array([ens(vector) for ens in hash_ensemble])
+		return np.array([ens(vector) for ens in self.last_ensemble])
 
-	def write_matrix_signature(matrix, hash_ensemble):
-		return np.matrix([write_signature(v, hash_ensemble) for v in matrix])
+	def write_matrix_signature(matrix):
+		return np.matrix([self.write_signature(v) for v in matrix])
 
 	def bin_signature_matrix(matrix):
 		signature_hash = {}
@@ -74,29 +74,32 @@ class LSH_tools(object):
 				signature_hash[v] = []
 			signature_hash[v].append(i)
 		return signature_hash 
-
-def lsh_nn(vector, signature_hash, original_data, distance, hash_ensemble):
-	vec_sig = write_signature(vector, hash_ensemble)
 	
-	candidates = signature_hash.get(vec_sig, None)
-	if not candidates:
-		raise Error, "There are no points in this hash. %s." % vec_sig
-	winning_distance, winning_prototype = -1, -1
-	for c in candidates:
-		d = distance(vector, original_data[c,:])
-		if winning_distance == -1 or d < winning_distance:
-			winning_distance = d
-			winning_prototype = c
-	return c
+	def near_neighbors(self, vector):
+		vec_sig = self.write_signature(vector)
+		
+		candidates = self.last_bins.get(vec_sig, None)
+		if not candidates:
+			raise Error, "There are no points in this hash. %s." % vec_sig
+		winning_distance, winning_prototype = -1, -1
+		for c in candidates:
+			d = distance(vector, original_data[c,:])
+			if winning_distance == -1 or d < winning_distance:
+				winning_distance = d
+				winning_prototype = c
+		return c
 
 class LSH(LSH_tools):
 	def __init__(self, hash_fcn = this_hash_fcn):
-		self.hash_function = this_hash_fcn
+		self._hash_function = this_hash_fcn
 		LSH_tools.__init__(self)
 		self.last_ensemble = None
 		self.last_indices = None
 		self.last_bins = None
 		self.last_data_id = None
+	
+	def change_hash_function(self, new_hash_function):
+		self._hash_function = new_hash_function
 	
 	def bin_data(self, data, bands = 20, per_band = 5, flush = False):
 		"""Takes data and bins them using the LSH algorithm.
@@ -105,18 +108,58 @@ class LSH(LSH_tools):
 		sigsize = bands * per_bands
 		n, p = data.shape
 		# create the hash ensemble.
-		self.last_ensemble = self.make_lsh_ensemble(self.hash_function, 
+		self.last_ensemble = self.make_lsh_ensemble(self._hash_function,
 		                                           functions = sigsize, d = p)
 		
 		sig_matrix = self.matrix_signature(data, self.last_ensemble)
 		self.last_bins = self.bin_matrix_signature(sig_matrix)
 		self.last_data_id = id(data)
+		# only saves reference to last data, not the data itself.
+		self.last_data = data
 	
-	def return_near_neighbors(self, new_data):
+	def return_near_neighbors(self, new_data, r):
 		"""Returns a list of lists, where the upper level indices
 		mirror the new_data indices, and the lower level elements
-		are indices of the near neighbors"""
-		return self.lsh_nn(new_data)
+		are indices of the near neighbors.
+		
+		r = the threshold similarity.
+		"""
+		indices = []
+		for i, v in enumerate(new_data):
+			nn_i = self.near_neighbors(v)
+			indices.append(nn_i)
+		return indices
+	
+	def near_neighbors(self, vector, r):
+		vec_sig = self.write_signature(vector)
+		candidates = self.last_bin.get(vec_sig, None)
+		if not candidates:
+			raise Error, "There are no points in this hash. %s." % vec_sig
+		near_neighbors = []
+		for c in candidates:
+			d = distance(vector, self.last_data[c,:])
+			if d < r:
+				near_neighbors.append[d]
+		return near_neighbors
+	
+	def nearest_neighbors(self, vector, k):
+		"""Unfinished."""
+		vec_sig = self.write_signature(vector)
+		candidates = signature_hash.get(vec_sig, None)
+		if not candidates:
+			raise Error, "There are no points in this hash. %s." % vec_sig
+		dists = {}
+		for c in candidates:
+			d = distance(vector, self.last_data[c,:])
+			dists[c] = d
+		dists = [(v,k) for k,v in dists.items()]
+		dists.sort()
+		dists = [k for v,k in dists][0:k]
+		return dists
+	
+	##########################################################################
+	#################### misc. lsh utility functions. ########################
+	##########################################################################
 	
 	def is_binned(self):
 		return self.last_bins != None
@@ -125,6 +168,7 @@ class LSH(LSH_tools):
 		self.last_bins = None
 		self.last_data_id = None
 		self.last_indices = None
+
 
 ##############################################################################
 ################ Tests in need of migration to tests.py ######################
