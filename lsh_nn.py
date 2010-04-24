@@ -111,7 +111,20 @@ class LSH(LSH_tools):
 		sig_matrix = self.matrix_signature(data, self.last_ensemble)
 		self.last_bins = self.bin_matrix_signature(sig_matrix)
 		self.last_data_id = id(data)
-		
+	
+	def return_near_neighbors(self, new_data):
+		"""Returns a list of lists, where the upper level indices
+		mirror the new_data indices, and the lower level elements
+		are indices of the near neighbors"""
+		return self.lsh_nn(new_data)
+	
+	def is_binned(self):
+		return self.last_bins != None
+	
+	def flush_bins(self):
+		self.last_bins = None
+		self.last_data_id = None
+		self.last_indices = None
 
 ##############################################################################
 ################ Tests in need of migration to tests.py ######################
