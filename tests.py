@@ -1,49 +1,60 @@
-from random import randint, shuffle
-from scipy.sparse import csr_matrix, dok_matrix
-import numpy as np
-from lsh_nn import make_minhash, make_sparse_minhash, make_coordinate_hash,\
-                   make_lsh_ensemble, write_signature, write_matrix_signature,\
-                   bin_signature_matrix
+import unittest
+from random import seed
+from scipy.sparse import dok_matrix, csr_matrix
 
-def minhash_test():
-	a = make_lsh_ensemble(make_minhash, number_of_functions=5, d=9)
-	li = [0,1,0,0,0,0,1,0,0]
-	li2 = [1,0,0,1,1,1,1,1,1]
-	print [mh(li) for mh in a]
-	print [mh(li2) for mh in a]
+from lsh_nn import LSH
+from lsh_nn import make_sparse_minhash, make_coordinate_hash
 
-def sparse_minhash_test():
-	from scipy.sparse import dok_matrix, csr_matrix
-	smat = dok_matrix((1,100), dtype=np.int32)
-	smat[0,4] = 1
-	smat[0,6] = 1
-	smat[0,8] = 1
-	smat[0,85] = 1
-	smat[0,63] = 1
-	smat = csr_matrix(smat)
-	for i in range(10):
-		a = make_lsh_ensemble(make_sparse_minhash, functions = 5, d=100)
-		sig = write_signature(smat[0,:], a)
-		print sig
+from text_tools import txt_to_csr
 
-def sparse_signature_test():
-	pass
 
-def sparse_matrix_write_signature_test():
-	pass
-
-def sparse_jaccard_test():
-	import text_tools as tt
-	data = tt.text_to_csr("otoos11.txt")
-	n, p = data.shape
-	# make a signature matrix.
-	
-	ensemble = make_lsh_ensemble(make_sparse_minhash, functions = 100, d = p)
-	sig_matrix = write_matrix_signature(data, ensemble)
+class TestHashingFunctions(unittest.TestCase):
+	def setUp(self):
+		pass
 	
 	
+	def testMinhashRandomness(self):
+		seed(1)
+		a = make_sparse_minhash(3)
+		b = make_sparse_minhash(3)
+		v = csr_matrix([[1,0,0]])
+		a_out = a(v)
+		b_out = b(v)
+		self.assertTrue(a_out != b_out)
+
+	def testCoordinateRandomness(self):
+		seed(1)
+		a = make_coordinate_hash(3)
+		b = make_coordinate_hash(3)
+		v = [4,9,8]
+		a_out = a(v)
+		b_out = b(v)
+		self.assertTrue(a_out != b_out)
+
+
+class TestDataUtilities(unittest.TestCase):
+	def testTextToCSR(self):
+		"""Should not return an error"""
+		data = txt_to_csr("test.txt")
+		self.assertTrue(True)
+		
+
+class TestCoreFunctionality(unittest.TestCase):
+	def testFullCase(self):
+		"""LSH should not return an error"""
+		seed(1)
+		lsh = LSH(hash_function = make_sparse_minhash)
+		# get data.
+		self.assertTrue(True)
+
+	def testMinhashWithLSH(self):
+		"""LSH should 'work' with make_sparse_minhash"""
+		pass
+	
+	def testCoordinateWIthLSH(self):
+		"""LSH should 'work' with make_coordinate_hash"""
+		pass
+		
 
 if __name__ == "__main__":
-	#minhash_test()
-	#sparse_minhash_test()
-	sparse_jaccard_test()
+	unittest.main()
