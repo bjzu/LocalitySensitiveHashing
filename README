@@ -37,3 +37,9 @@ Some points to consider:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 2.) scalability is the secondary objective. I should be able to implement this
     in a thread-safe way (since binning should not induce any races), and eventually make it map-reduce friendly. 
+
+==============================================================================
+
+Todos:
+
+- get approximate (quick) minhashing working.
