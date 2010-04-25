@@ -1,10 +1,9 @@
-
 from scipy import weave
 from scipy.weave import converters
 
 def sparse_jaccard(x0, x1):
 	#return 1 - len(x0 & x1) / float(len(x0 | x1))
-	return 1 - len(set(x0.indices) and set(x1.indices)) / float((x0 + x1).getnnz())
+	return 1 - len(set(x0.indices) & set(x1.indices)) / float((x0 + x1).getnnz())
 
 def quick_jaccard(x0, x1):
 	"""This sadly does not work."""
@@ -30,25 +29,3 @@ def quick_jaccard(x0, x1):
 							compiler = 'gcc')
 	return 1 - distance
 
-if __name__ == "__main__":
-	from scipy.sparse import csr_matrix
-	import numpy as np
-	from time import time
-	times = []
-	for i in range(50000):
-		x0 = csr_matrix([0,1,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-		x1 = csr_matrix([0,1,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-		t = time()
-		#quick_jaccard(x0, x1)
-		sparse_jaccard(x0, x1)
-		t1 = time()
-		times.append(t1- t)
-		
-	print sum(times) / float(len(times))
-	print sum(times)
-	# from scipy.sparse import dok_matrix
-	# 	
-	# 	a = dok_matrix([[0,0,1,1,0,0],[1,0,0,1,0,0]], dtype=np.int32)
-	# 	print a[1,:].toarray()[0]
-	# 	print quick_jaccard(a[0,:].toarray()[0], a[1,:].toarray()[0])
-	# 	print quick_jaccard(a[0,:].toarray()[0], a[1,:].toarray()[0])
