@@ -27,6 +27,8 @@ def make_sparse_minhash(d):
 	def sparse_minhash(v):
 		"""Returns the minimum index for the permutation.
 		Expects v to be a sparse 1xn matrix."""
+		if v.getnnz() == 0:
+			return -1
 		return  min(j for j in [mh[i] for i in v.indices])
 	return sparse_minhash
 
@@ -50,21 +52,21 @@ class LSH_tools(object):
 	def __init__(self):
 		pass
 	
-	def make_lsh_ensemble(self, hash_creator, functions=5, d=None):
+	def make_lsh_ensemble(self, functions=5, d=None):
 		"""Creates an ensemble of hash functions using 
 		a hash_creator.  You must specify the dimension 
 		of the data you're expecting, d, as well as the number_of_functions."""
-		return [hash_creator(d) for i in range(functions)]
+		return [self._hash_function(d) for i in range(functions)]
 
-	def write_signature(self, vector):
+	def write_signature(self, vector, i):
 		"""Turns a raw numeric vector into a signature, which is
 		simply a vector of hash functions with the original vector
 		as the argument."""
 		#print [ens(np.array(vector)[0]) for ens in hash_ensemble]
-		return np.array([ens(vector) for ens in self.last_ensemble])
+		return np.array([ens(vector) for ens in self.last_ensemble[i]])
 
-	def write_matrix_signature(self, matrix):
-		return np.matrix([self.write_signature(v) for v in matrix])
+	def write_signature_matrix(self, matrix, i):
+		return np.matrix([self.write_signature(v, i) for v in matrix])
 
 	def bin_signature_matrix(self, matrix):
 		signature_hash = {}
@@ -108,11 +110,21 @@ class LSH(LSH_tools):
 		"""
 		sigsize = bands * per_band
 		n, p = data.shape
-		# create the hash ensemble.
-		self.last_ensemble = self.make_lsh_ensemble(self._hash_function, functions = sigsize, d = p)
 		
-		sig_matrix = self.write_matrix_signature(data)
-		self.last_bins = self.bin_matrix_signature(sig_matrix)
+		self.last_ensemble = []
+		
+		for i in range(bands):
+			ens = self.make_lsh_ensemble(functions = per_band, d = p)
+			self.last_ensemble.append(ens) 
+		
+		# matrix signature should be a list of smaller matrix, not one big one.
+		self.last_bins = []
+		for i, ens in enumerate(self.last_ensemble):
+			sig_matrix = self.write_signature_matrix(data, i)
+			binset = self.bin_signature_matrix(sig_matrix)
+			self.last_bins.append(binset)
+		#sig_matrix = self.write_matrix_signature(data)
+		#self.last_bins = self.bin_matrix_signature(sig_matrix)
 		self.last_data_id = id(data)
 		# only saves reference to last data, not the data itself.
 		self.last_data = data
@@ -173,6 +185,14 @@ class LSH(LSH_tools):
 		self.last_bins = None
 		self.last_data_id = None
 		self.last_indices = None
+	
+	def single_bins_frequency(self):
+		singles = 0
+		total = 0
+		for bin in self.last_bins:
+			singles += len(True for i in bin.values() if len(i) == 1)
+			total += len(bin.values())
+		return singles / float(total)
 
 
 if __name__ == "__main__":
