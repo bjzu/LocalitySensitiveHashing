@@ -2,19 +2,19 @@
         Locality-Sensitive Hashing for the Near(est) Neighbors Problem
 ==============================================================================
 
-This small library implements LSH-kNN with Python and NumPy.  It's pretty damn fast.  It can handle sparse matrices like a champ.  It's thread-safe, and
-has about a bajillion unit tests.  This chick pea was built to last.
+This small library implements LSH-kNN with Python and NumPy. 
+It's pretty damn fast.  It can handle sparse matrices like a champ.
 
 ==============================================================================
 
 Some points to consider:
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-1.) flexiblility is key.  I want to be able to do this:
+1.) flexiblility is key.  This library should be easy to manipulate:
 	                            
 	# instantiate the object easily, or perhaps make a few.
-	lsh = LSH(hash_fcn = make_sparse_minhash)
-	lsh1 = LSH(hash_fcn = make_coordinate_hash)
+	lsh = LSH(hash_function = make_sparse_minhash)
+	lsh1 = LSH(hash_function = make_coordinate_hash)
 	
 	# this fcn hashes the old data, storing the signatures
 	# and indices in a dictionary (or multiple dictionaries).
@@ -24,10 +24,12 @@ Some points to consider:
 	# this fcn queries the LSH obj to get the indices of
 	# the old data closest to each row of the new data.
 	# should return an np.array of said indices.
-	nns = lsh.return_nearest_neighbors(new_data_set)
-	nears = lsh.return_near_neighbors(new_data_set)
+	r =.5
+	k = 10
+	nns = lsh.return_nearest_neighbors(new_data_set,k)
+	nears = lsh.return_near_neighbors(new_data_set,r)
 	
-	# I should be able to manipulate the old data set
+        # I should be able to manipulate the old data set
 	# and do it all again or add if I want:
 	old_data_set = do_something_to_it(old_data_set)
 	lsh.bin_data(old_data_set, flush=True)
