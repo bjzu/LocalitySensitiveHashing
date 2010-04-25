@@ -7,11 +7,12 @@ def sparse_minhash_test():
 	# grab some data.
 	data = txt_to_csr("otoos11.txt")
 	print "Loaded data (%s by %s) ..." % data.shape
-	nn.bin_data(data, bands = 60, per_band = 5)
+	nn.bin_data(data, bands = 10, per_band = 5)
 	print "Binned data ..."
-	from pprint import PrettyPrinter
-	p = PrettyPrinter(indent=4)
-	p.pprint(nn.last_bins)
+	print nn.single_bins_frequency()
+	# from pprint import PrettyPrinter
+	# p = PrettyPrinter(indent=4)
+	# p.pprint(nn.last_bins)
 
 if __name__ == "__main__":
     sparse_minhash_test()

@@ -48,7 +48,6 @@ class TestCoreFunctionality(unittest.TestCase):
 		"""LSH should not return an error"""
 		seed(1)
 		lsh = LSH(hash_function = make_sparse_minhash)
-		
 		self.assertTrue(True)
 
 	def testMinhashWithLSH(self):
