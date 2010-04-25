@@ -42,7 +42,7 @@ def file_to_matrix(filename, outfile):
 	
 	print n, d, total_spots, total_spots / float(n*d)
 
-def text_to_csr(filename):
+def txt_to_csr(filename):
 	f = open(filename, "r")
 	every_line = []
 	# get every line out.
