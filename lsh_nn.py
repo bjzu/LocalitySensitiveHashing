@@ -190,7 +190,7 @@ class LSH(LSH_tools):
 		singles = 0
 		total = 0
 		for bin in self.last_bins:
-			singles += len(True for i in bin.values() if len(i) == 1)
+			singles += len([True for i in bin.values() if len(i) == 1])
 			total += len(bin.values())
 		return singles / float(total)
 
