@@ -39,12 +39,16 @@ class TestDataUtilities(unittest.TestCase):
 		self.assertTrue(True)
 		
 
+class TestLSHTools(unittest.TestCase):
+	pass
+
+
 class TestCoreFunctionality(unittest.TestCase):
 	def testFullCase(self):
 		"""LSH should not return an error"""
 		seed(1)
 		lsh = LSH(hash_function = make_sparse_minhash)
-		# get data.
+		
 		self.assertTrue(True)
 
 	def testMinhashWithLSH(self):
