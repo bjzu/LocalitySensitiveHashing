@@ -1,7 +1,6 @@
 from random import randint, shuffle
 from scipy.sparse import dok_matrix, csr_matrix
 from distance import sparse_jaccard
-from hash_functions import *
 
 ##############################################################################
 ###################### Various Hash Generating Functions #####################
@@ -12,7 +11,7 @@ def make_minhash(d):
 	shuffle(n)
 	def minhash(v):
 		for i in n:
-			if v[i] !=0: return i
+			if v[i] != 0: return i
 		return 0
 	return minhash
 
@@ -27,7 +26,6 @@ def make_sparse_minhash(d):
 		"""Returns the minimum index for the permutation.
 		Expects v to be a sparse 1xn matrix."""
 		return  min(j for j in [mh[i] for i in v.indices])
-	
 	return sparse_minhash
 
 def make_coordinate_hash(d):
@@ -90,13 +88,14 @@ class LSH_tools(object):
 		return c
 
 class LSH(LSH_tools):
-	def __init__(self, hash_fcn = this_hash_fcn):
-		self._hash_function = this_hash_fcn
+	def __init__(self, hash_function = sparse_jaccard, distance = None):
+		self._hash_function = hash_function
 		LSH_tools.__init__(self)
 		self.last_ensemble = None
 		self.last_indices = None
 		self.last_bins = None
 		self.last_data_id = None
+		self.distance = None
 	
 	def change_hash_function(self, new_hash_function):
 		self._hash_function = new_hash_function
@@ -117,18 +116,23 @@ class LSH(LSH_tools):
 		# only saves reference to last data, not the data itself.
 		self.last_data = data
 	
-	def return_near_neighbors(self, new_data, r):
-		"""Returns a list of lists, where the upper level indices
-		mirror the new_data indices, and the lower level elements
-		are indices of the near neighbors.
-		
-		r = the threshold similarity.
-		"""
+	def _query(self, new_data, query_fcn, parameter):
+		"""basis for near(est) neighbors query."""
 		indices = []
 		for i, v in enumerate(new_data):
-			nn_i = self.near_neighbors(v)
-			indices.append(nn_i)
+			query_i = query_fcn(v, parameter)
+			indices.append(query_i)
 		return indices
+	
+	def return_near_neighbors(self, new_data, r):
+		"""performs near neighbors search on new_data, with similarity
+		threshold r."""
+		return self._query(new_data, self.near_neighbors, r)
+	
+	def return_nearest_neighbors(self, new_data, k):
+		"""Performs nearest neighbors search on new_data, looking for the
+		k nearest points to each row of new_data."""
+		return self._query(new_data, self.nearest_neighbors, k)
 	
 	def near_neighbors(self, vector, r):
 		vec_sig = self.write_signature(vector)
@@ -168,39 +172,6 @@ class LSH(LSH_tools):
 		self.last_bins = None
 		self.last_data_id = None
 		self.last_indices = None
-
-
-##############################################################################
-################ Tests in need of migration to tests.py ######################
-##############################################################################
-
-def dense_test():
-	dimensions = 1000
-	coord_ensemble = make_lsh_ensemble(make_coordinate_hash, 
-						number_of_functions=10, d=dimensions)
-	
-	# Generate some random data.
-	d = np.matrix(np.random.randint(0,2, (100000, dimensions)))
-	
-	# Build a matrix of signatures.
-	print "Let's build a matrix of signatures."
-	t = time()
-	s = write_matrix_signature(d, coord_ensemble)
-	print "%s for a %s matrix" % ((time() - t), s.shape)
-	t = time()
-	print "Making the signature hash."
-	a = bin_signature_matrix(s)
-	print "%s seconds for a hash of size %s" % (time() - t, len(a))
-	
-	bins = {}
-	for i in a:
-		l = len(a[i])
-		if l not in bins: bins[l] = 0
-		bins[l] += 1
-	bins = [(v,k) for k,v in bins.items()]
-	bins.sort(reverse=True)
-	for v, k in bins:
-		print "%-5s %s" % (v,k)
 
 
 if __name__ == "__main__":
