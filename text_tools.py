@@ -59,7 +59,7 @@ def txt_to_csr(filename):
 	dictionary = set()
 	wc = {}
 	for l in every_line:
-		words = l.split()
+		words = l.strip().split()
 		dictionary.update(set(words))
 		for word in words:
 			wc[word] = wc.get(word, 0) + 1
