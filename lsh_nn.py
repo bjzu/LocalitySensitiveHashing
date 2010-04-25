@@ -1,3 +1,5 @@
+import numpy as np
+
 from random import randint, shuffle
 from scipy.sparse import dok_matrix, csr_matrix
 from distance import sparse_jaccard
@@ -48,23 +50,23 @@ class LSH_tools(object):
 	def __init__(self):
 		pass
 	
-	def make_lsh_ensemble(hash_creator, functions=5, d=None):
+	def make_lsh_ensemble(self, hash_creator, functions=5, d=None):
 		"""Creates an ensemble of hash functions using 
 		a hash_creator.  You must specify the dimension 
 		of the data you're expecting, d, as well as the number_of_functions."""
 		return [hash_creator(d) for i in range(functions)]
 
-	def write_signature(vector):
+	def write_signature(self, vector):
 		"""Turns a raw numeric vector into a signature, which is
 		simply a vector of hash functions with the original vector
 		as the argument."""
 		#print [ens(np.array(vector)[0]) for ens in hash_ensemble]
 		return np.array([ens(vector) for ens in self.last_ensemble])
 
-	def write_matrix_signature(matrix):
+	def write_matrix_signature(self, matrix):
 		return np.matrix([self.write_signature(v) for v in matrix])
 
-	def bin_signature_matrix(matrix):
+	def bin_signature_matrix(self, matrix):
 		signature_hash = {}
 		for i, v in enumerate(matrix):
 			v = tuple(np.array(v)[0])
@@ -88,7 +90,7 @@ class LSH_tools(object):
 		return c
 
 class LSH(LSH_tools):
-	def __init__(self, hash_function = sparse_jaccard, distance = None):
+	def __init__(self, hash_function = make_sparse_minhash, distance = None):
 		self._hash_function = hash_function
 		LSH_tools.__init__(self)
 		self.last_ensemble = None
@@ -104,13 +106,12 @@ class LSH(LSH_tools):
 		"""Takes data and bins them using the LSH algorithm.
 		This is akin to the preprocessing step in LSH papers.
 		"""
-		sigsize = bands * per_bands
+		sigsize = bands * per_band
 		n, p = data.shape
 		# create the hash ensemble.
-		self.last_ensemble = self.make_lsh_ensemble(self._hash_function,
-		                                           functions = sigsize, d = p)
+		self.last_ensemble = self.make_lsh_ensemble(self._hash_function, functions = sigsize, d = p)
 		
-		sig_matrix = self.matrix_signature(data, self.last_ensemble)
+		sig_matrix = self.write_matrix_signature(data)
 		self.last_bins = self.bin_matrix_signature(sig_matrix)
 		self.last_data_id = id(data)
 		# only saves reference to last data, not the data itself.
@@ -175,7 +176,5 @@ class LSH(LSH_tools):
 
 
 if __name__ == "__main__":
-	import numpy as np
-	from time import time
 	#dense_test()
 	sparse_test()
