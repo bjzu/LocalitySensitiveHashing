@@ -104,29 +104,38 @@ class LSH(LSH_tools):
 	def change_hash_function(self, new_hash_function):
 		self._hash_function = new_hash_function
 	
-	def bin_data(self, data, bands = 20, per_band = 5, flush = False):
+	def bin_data(self, data, bands = 20, per_band = 5, 
+	             flush = False, verbose = False):
 		"""Takes data and bins them using the LSH algorithm.
 		This is akin to the preprocessing step in LSH papers.
 		"""
 		sigsize = bands * per_band
 		n, p = data.shape
 		
-		self.last_ensemble = []
+		if flush:
+			self.last_ensemble = None
+			self.last_data_id = None
+			self.last_data = None
+		if self.last_ensemble == None:
+			self.last_ensemble = []
 		
 		for i in range(bands):
 			ens = self.make_lsh_ensemble(functions = per_band, d = p)
-			self.last_ensemble.append(ens) 
+			self.last_ensemble.append(ens)
+			if verbose: print "Finished creating band No. %s" % i
 		
-		# matrix signature should be a list of smaller matrix, not one big one.
-		self.last_bins = []
+		self.last_bins = {}
 		for i, ens in enumerate(self.last_ensemble):
 			sig_matrix = self.write_signature_matrix(data, i)
 			binset = self.bin_signature_matrix(sig_matrix)
-			self.last_bins.append(binset)
-		#sig_matrix = self.write_matrix_signature(data)
-		#self.last_bins = self.bin_matrix_signature(sig_matrix)
+			for k in binset:
+				if k not in self.last_bins:
+					v = binset[k]
+					self.last_bins[k] = []
+				self.last_bins[k].extend(v)
+			if verbose: print "finished binning band no. %s" % i
+		
 		self.last_data_id = id(data)
-		# only saves reference to last data, not the data itself.
 		self.last_data = data
 	
 	def _query(self, new_data, query_fcn, parameter):
@@ -190,9 +199,20 @@ class LSH(LSH_tools):
 		singles = 0
 		total = 0
 		for bin in self.last_bins:
-			singles += len([True for i in bin.values() if len(i) == 1])
-			total += len(bin.values())
+			if len(self.last_bins[bin]) == 1:
+				singles += 1
+			total += 1
 		return singles / float(total)
+	
+	def check_for_duplicates(self):
+		dup_dict = {}
+		for bin in self.last_bins:
+			vs = self.last_bins[bin]
+			for v in vs:
+				if v not in dup_dict: dup_dict[v] = []
+			dup_dict[v].append(bin)
+		return dup_dict
+
 
 
 if __name__ == "__main__":
