@@ -57,39 +57,23 @@ class LSH_tools(object):
 		a hash_creator.  You must specify the dimension 
 		of the data you're expecting, d, as well as the number_of_functions."""
 		return [self._hash_function(d) for i in range(functions)]
-
-	def write_signature(self, vector, i):
+	
+	def write_signature(self, vector):
 		"""Turns a raw numeric vector into a signature, which is
 		simply a vector of hash functions with the original vector
 		as the argument."""
-		#print [ens(np.array(vector)[0]) for ens in hash_ensemble]
-		return np.array([ens(vector) for ens in self.last_ensemble[i]])
-
-	def write_signature_matrix(self, matrix, i):
-		return np.matrix([self.write_signature(v, i) for v in matrix])
-
-	def bin_signature_matrix(self, matrix):
-		signature_hash = {}
-		for i, v in enumerate(matrix):
-			v = tuple(np.array(v)[0])
-			if v not in signature_hash:
-				signature_hash[v] = []
-			signature_hash[v].append(i)
-		return signature_hash 
+		return [ens(vector) for ens in self.last_ensemble]
 	
-	def near_neighbors(self, vector):
-		vec_sig = self.write_signature(vector)
-		
-		candidates = self.last_bins.get(vec_sig, None)
-		if not candidates:
-			raise Error, "There are no points in this hash. %s." % vec_sig
-		winning_distance, winning_prototype = -1, -1
-		for c in candidates:
-			d = distance(vector, original_data[c,:])
-			if winning_distance == -1 or d < winning_distance:
-				winning_distance = d
-				winning_prototype = c
-		return c
+	def bin_signatures(self, data, bands, per_band):
+		"""experimental speedup.  Let's see if it works."""
+		for i, v in enumerate(data):
+			sig = self.NEW_write_signature(v)
+			for b in range(bands):
+				minhash = tuple(sig[(b*per_band):((b+1)*per_band - 1)])
+				if minhash not in self.last_bins: self.last_bins[minhash] = []
+				self.last_bins[minhash].append(i)
+		# This should have binned all our data.
+	
 
 class LSH(LSH_tools):
 	def __init__(self, hash_function = make_sparse_minhash, distance = None):
@@ -119,21 +103,11 @@ class LSH(LSH_tools):
 		if self.last_ensemble == None:
 			self.last_ensemble = []
 		
-		for i in range(bands):
-			ens = self.make_lsh_ensemble(functions = per_band, d = p)
-			self.last_ensemble.append(ens)
-			if verbose: print "Finished creating band No. %s" % i
+		self.last_ensemble = self.make_lsh_ensemble(functions = sigsize, d = p)
+		if verbose: print "created hash functions."
 		
 		self.last_bins = {}
-		for i, ens in enumerate(self.last_ensemble):
-			sig_matrix = self.write_signature_matrix(data, i)
-			binset = self.bin_signature_matrix(sig_matrix)
-			for k in binset:
-				if k not in self.last_bins:
-					v = binset[k]
-					self.last_bins[k] = []
-				self.last_bins[k].extend(v)
-			if verbose: print "finished binning band no. %s" % i
+		self.bin_signatures(data, bands, per_band)
 		
 		self.last_data_id = id(data)
 		self.last_data = data
@@ -212,7 +186,6 @@ class LSH(LSH_tools):
 				if v not in dup_dict: dup_dict[v] = []
 			dup_dict[v].append(bin)
 		return dup_dict
-
 
 
 if __name__ == "__main__":
