@@ -89,25 +89,77 @@ class LSH_tools(object):
 		indices = range(n)
 		for i in indices:
 			data_queue.put(i)
-		
+		data_queue.close()
 		lock = thread.allocate_lock()
-		
-		def vector_hasher():
+		ts = time()
+		def vector_hasher(t):
 			while not data_queue.empty():
 				ind = data_queue.get()
 				v = data[ind,:]
 				sig = self.write_signature(v)
+				lock.acquire()
 				for b in range(bands):
 					minhash = tuple(sig[(b*per_band):((b+1)*per_band - 1)])
-					lock.acquire()
-					if minhash not in self.last_bins: self.last_bins[minhash] = []
+					if minhash not in self.last_bins: 
+						self.last_bins[minhash] = []
 					self.last_bins[minhash].append(ind)
-					lock.release()
+				lock.release()
 				data_queue.task_done()
+				#print "thread %s finished point %s" % (t, ind)
+				if self.verbose and data_queue.qsize() % 1000 == 0:
+					t1 = time()
+					print "Queue size is now %s (by %s). (%s min, %s sec)" % (
+						data_queue.qsize(), 
+						n,
+						int(floor((t1 - ts)/60.0)), int((t1 - ts) % 60))
+			# Done.
 		
 		for t in range(threadcount):
-			thread.start_new_thread(vector_hasher)
+			thread.start_new_thread(vector_hasher, (t, ))
 		# Um ... this should be done now.
+		data_queue.join()
+	
+	def multiproc_bin_signatures(self, data, bands, per_band, procs):
+		from multiprocessing import Process, Lock, JoinableQueue
+		#self.last_bins = {}
+		#from Queue import Queue
+		n, p = data.shape
+		data_queue = JoinableQueue(n)
+		indices = range(n)
+		for i in indices:
+			data_queue.put(i)
+		
+		lock = Lock()
+		ts = time()
+		co = 0
+		
+		def vector_hasher(t, bins):
+			while not data_queue.empty():
+				ind = data_queue.get()
+				v = data[ind,:]
+				sig = self.write_signature(v)
+				lock.acquire()
+				for b in range(bands):
+					minhash = tuple(sig[(b*per_band):((b+1)*per_band - 1)])
+					if minhash not in bins: 
+						bins[minhash] = []
+					bins[minhash].append(ind)
+				lock.release()
+				data_queue.task_done()
+				#print "thread %s finished point %s" % (t, ind)
+				if self.verbose and ind % 1000 == 0:
+					t1 = time()
+					print "Finished %s of %s. (%s min, %s sec)" % (
+						ind, 
+						n,
+						int(floor((t1 - ts)/60.0)), int((t1 - ts) % 60))
+			# Done.
+		
+		for t in range(procs):
+			Process(target=vector_hasher, args=(t, self.last_bins)).start()
+		# Um ... this should be done now.
+		data_queue.join()
+		print self.last_bins
 
 class LSH(LSH_tools):
 	def __init__(self, hash_function = make_sparse_minhash, distance = None):
@@ -148,9 +200,9 @@ class LSH(LSH_tools):
 		self.last_data_id = id(data)
 		self.last_data = data
 	
-	def threaded_bin_data(self, data, bands = 20, per_band = 5,
+	def _protobin(self, data, proc_function, bands = 20, per_band = 5,
 							flush = False, verbose = False,
-							threadcount = 5):
+							procs = 5):
 		sigsize = bands * per_band
 		n, p = data.shape
 		
@@ -167,12 +219,29 @@ class LSH(LSH_tools):
 		if self.verbose: print "created hash functions."
 		
 		self.last_bins = {}
-		self.conc_bin_signatures(data, bands, per_band, threadcount)
-		#self.bin_signatures(data, bands, per_band)
 		
+		proc_function(data, bands, per_band, procs)
+		#self.conc_bin_signatures(data, bands, per_band, threadcount)
+		#self.bin_signatures(data, bands, per_band)
+		print self.last_bins, "!!!!!!"
 		self.last_data_id = id(data)
 		self.last_data = data
-		
+	
+	def threaded_bin_data(self, data, bands = 20, per_band = 5,
+								flush = False, verbose = False,
+								threadcount = 5):
+		self._protobin(data, self.conc_bin_signatures, bands = bands,
+						per_band = per_band, flush = flush, 
+						verbose = verbose, procs = threadcount)
+		# need to clean up how this function reads.
+	
+	def multiproc_bin_data(self, data, bands = 20, per_band = 5,
+		flush = False, verbose = False,
+		proccount = 5):
+		self._protobin(data, self.multiproc_bin_signatures, bands = bands,
+						per_band = per_band, flush = flush, 
+						verbose = verbose, procs = proccount)
+		# Need to clean up how this function reads.
 	
 	def _query(self, new_data, query_fcn, parameter):
 		"""basis for near(est) neighbors query."""
