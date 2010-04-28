@@ -67,7 +67,7 @@ class LSH_tools(object):
 	def bin_signatures(self, data, bands, per_band):
 		"""experimental speedup.  Let's see if it works."""
 		for i, v in enumerate(data):
-			sig = self.NEW_write_signature(v)
+			sig = self.write_signature(v)
 			for b in range(bands):
 				minhash = tuple(sig[(b*per_band):((b+1)*per_band - 1)])
 				if minhash not in self.last_bins: self.last_bins[minhash] = []
