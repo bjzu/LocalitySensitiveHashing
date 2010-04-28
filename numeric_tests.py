@@ -8,18 +8,20 @@ from mysql_connection import table_to_csr
 def sparse_minhash_test():
 	nn = lsh.LSH(hash_function = lsh.make_sparse_minhash)
 	# grab some data.
-	#data, sentence_dict = txt_to_csr("otoos11.txt")
-	data, kid_index, link_index = table_to_csr()
+	data, sentence_dict = txt_to_csr("otoos11.txt")
+	#data, kid_index, link_index = table_to_csr()
 	print "Loaded data (%s by %s) ..." % data.shape
-	nn.bin_data(data, bands = 20, per_band = 5, verbose = True)
+	#nn.threaded_bin_data(data, bands = 20, per_band = 5, verbose = True)
+	nn.multiproc_bin_data(data, bands = 20, per_band = 5, verbose = True)
+	#nn.bin_data(data, bands = 20, per_band = 5, verbose = True)
 	print "Binned data ..."
 	
-	print nn.single_bins_frequency()
+	#print nn.single_bins_frequency()
 	
 	from pprint import PrettyPrinter
 	p = PrettyPrinter(indent=4)
 	#len(b for b in nn.last_bins.keys() if nn.last_bins[b])
-	#p.pprint(nn.last_bins)
+	p.pprint(nn.last_bins)
 	#p.pprint(nn.check_for_duplicates())
 	#check_sentences(nn, sentence_dict)
 	#check_points(nn, data)
