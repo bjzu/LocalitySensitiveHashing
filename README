@@ -42,4 +42,16 @@ Some points to consider:
 
 Todos:
 
-- get approximate (quick) minhashing working.
+- get approximate (quick) minhashing working - not as critical ...
+- begin working on threaded version of the algorithm.
+
+
+
+
+
+
+
+
+
+
+
