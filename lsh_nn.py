@@ -4,6 +4,9 @@ from random import randint, shuffle
 from scipy.sparse import dok_matrix, csr_matrix
 from distance import sparse_jaccard
 
+from time import time
+from math import floor
+
 ##############################################################################
 ###################### Various Hash Generating Functions #####################
 ##############################################################################
@@ -55,7 +58,7 @@ class LSH_tools(object):
 	def make_lsh_ensemble(self, functions=5, d=None):
 		"""Creates an ensemble of hash functions using 
 		a hash_creator.  You must specify the dimension 
-		of the data you're expecting, d, as well as the number_of_functions."""
+		of the data you're expecting, d, and the number_of_functions."""
 		return [self._hash_function(d) for i in range(functions)]
 	
 	def write_signature(self, vector):
@@ -66,14 +69,45 @@ class LSH_tools(object):
 	
 	def bin_signatures(self, data, bands, per_band):
 		"""experimental speedup.  Let's see if it works."""
+		n, p = data.shape
+		t = time()
 		for i, v in enumerate(data):
 			sig = self.write_signature(v)
+			if self.verbose and i % 1000 == 0:
+				t1 = time()
+				print "%s done. (%s min, %s sec)" % (i, int(floor((t1 - t)/60.0)), int((t1 - t) % 60)) 
 			for b in range(bands):
 				minhash = tuple(sig[(b*per_band):((b+1)*per_band - 1)])
 				if minhash not in self.last_bins: self.last_bins[minhash] = []
 				self.last_bins[minhash].append(i)
-		# This should have binned all our data.
 	
+	def conc_bin_signatures(self, data, bands, per_band, threadcount):
+		import thread
+		from Queue import Queue
+		n, p = data.shape
+		data_queue = Queue(n)
+		indices = range(n)
+		for i in indices:
+			data_queue.put(i)
+		
+		lock = thread.allocate_lock()
+		
+		def vector_hasher():
+			while not data_queue.empty():
+				ind = data_queue.get()
+				v = data[ind,:]
+				sig = self.write_signature(v)
+				for b in range(bands):
+					minhash = tuple(sig[(b*per_band):((b+1)*per_band - 1)])
+					lock.acquire()
+					if minhash not in self.last_bins: self.last_bins[minhash] = []
+					self.last_bins[minhash].append(ind)
+					lock.release()
+				data_queue.task_done()
+		
+		for t in range(threadcount):
+			thread.start_new_thread(vector_hasher)
+		# Um ... this should be done now.
 
 class LSH(LSH_tools):
 	def __init__(self, hash_function = make_sparse_minhash, distance = None):
@@ -96,6 +130,8 @@ class LSH(LSH_tools):
 		sigsize = bands * per_band
 		n, p = data.shape
 		
+		self.verbose = verbose
+		
 		if flush:
 			self.last_ensemble = None
 			self.last_data_id = None
@@ -104,13 +140,39 @@ class LSH(LSH_tools):
 			self.last_ensemble = []
 		
 		self.last_ensemble = self.make_lsh_ensemble(functions = sigsize, d = p)
-		if verbose: print "created hash functions."
+		if self.verbose: print "created hash functions."
 		
 		self.last_bins = {}
 		self.bin_signatures(data, bands, per_band)
 		
 		self.last_data_id = id(data)
 		self.last_data = data
+	
+	def threaded_bin_data(self, data, bands = 20, per_band = 5,
+							flush = False, verbose = False,
+							threadcount = 5):
+		sigsize = bands * per_band
+		n, p = data.shape
+		
+		self.verbose = verbose
+		
+		if flush:
+			self.last_ensemble = None
+			self.last_data_id = None
+			self.last_data = None
+		if self.last_ensemble == None:
+			self.last_ensemble = []
+		
+		self.last_ensemble = self.make_lsh_ensemble(functions = sigsize, d = p)
+		if self.verbose: print "created hash functions."
+		
+		self.last_bins = {}
+		self.conc_bin_signatures(data, bands, per_band, threadcount)
+		#self.bin_signatures(data, bands, per_band)
+		
+		self.last_data_id = id(data)
+		self.last_data = data
+		
 	
 	def _query(self, new_data, query_fcn, parameter):
 		"""basis for near(est) neighbors query."""

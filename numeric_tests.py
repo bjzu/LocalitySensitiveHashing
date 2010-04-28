@@ -8,8 +8,8 @@ from mysql_connection import table_to_csr
 def sparse_minhash_test():
 	nn = lsh.LSH(hash_function = lsh.make_sparse_minhash)
 	# grab some data.
-	data, sentence_dict = txt_to_csr("otoos11.txt")
-	#data, kid_index, link_index = table_to_csr()
+	#data, sentence_dict = txt_to_csr("otoos11.txt")
+	data, kid_index, link_index = table_to_csr()
 	print "Loaded data (%s by %s) ..." % data.shape
 	nn.bin_data(data, bands = 20, per_band = 5, verbose = True)
 	print "Binned data ..."
