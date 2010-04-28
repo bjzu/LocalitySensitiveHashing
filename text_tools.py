@@ -1,6 +1,11 @@
 from scipy.sparse import dok_matrix, csr_matrix
 import numpy as np
 
+from string import punctuation
+
+def is_not_punct(char):
+	return char not in "!\"#$%&'()*+,-/:;<=>?@[\]^_`{|}~"
+
 def file_to_matrix(filename, outfile):
 	"""Converts raw text file to a matrix, saved in outfile as a COO mat."""
 	f = open(filename, "r")
@@ -48,7 +53,13 @@ def txt_to_csr(filename):
 	# get every line out.
 	for line in f:
 		line = line.strip().lower()
+		line = filter(is_not_punct, line)
 		every_line.append(line)
+	f.close()
+	################################################
+	################################################
+	################################################
+	
 	every_line = ''.join(every_line)
 	
 	# Split into sentences.
@@ -70,9 +81,11 @@ def txt_to_csr(filename):
 	d = len(wc)
 	
 	data = dok_matrix((n,d), dtype=np.int32)
+	sentence_dict = []
 	for j, l in enumerate(every_line):
+		sentence_dict.append(l)
 		words = l.split()
 		for word in words:
 			data[j, wc[word]] = 1
 	data = csr_matrix(data)
-	return data 
+	return data, sentence_dict 
