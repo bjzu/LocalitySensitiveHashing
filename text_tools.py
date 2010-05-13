@@ -88,4 +88,36 @@ def txt_to_csr(filename):
 		for word in words:
 			data[j, wc[word]] = 1
 	data = csr_matrix(data)
-	return data, sentence_dict 
+	return data, sentence_dict
+
+def text_to_dict(filename):
+	f = open(filename, "r")
+	every_line = []
+	# get every line out.
+	for line in f:
+		line = line.strip().lower()
+		line = filter(is_not_punct, line)
+		every_line.append(line)
+	f.close()
+	################################################
+	################################################
+	################################################
+	
+	every_line = ''.join(every_line)
+	
+	# Split into sentences.
+	every_line = every_line.split(".")
+	data = {}
+	
+	worddict = {}
+	wc = 0
+	for i, line in enumerate(every_line):
+		line = line.split()
+		if i not in data: data[i] = set()
+		for word in line:
+			if word not in worddict:
+				worddict[word] = wc
+				wc += 1
+			data[i].add(worddict[word])
+	return data, worddict
+	
