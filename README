@@ -3,7 +3,7 @@
 ==============================================================================
 
 This small library implements LSH-kNN for the masses in Python. 
-It runs on all your cores.  It caches.  It cooks.  It cleans.
+It runs on all your cores.  Perfect for your medium-data needs.
 
 ==============================================================================
 
@@ -12,10 +12,12 @@ Here's how one might use it:
 >>> import lsh
 >>> # data is a dictionary of indices.
 >>> # number_of_expected_features is an integer expressing how many
->>> # integers you, um, expect.
+>>> # features you, um, expect.
 >>> this_lsh = lsh.LSH(d=number_of_expected_features)
 >>> this_lsh.bin_data(data)
 >>> # Let's find the near neighbors for some query_pt.
 >>> query_pt = data[some_index]
 >>> near_neighbors = lsh.near_neighbors(some_index, query_pt)
->>> # Bam!  A bunch of indices.
+>>> # Bam!  You have your near neighbors.
+
+==============================================================================
