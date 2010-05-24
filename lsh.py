@@ -7,12 +7,6 @@ import os
 from distance import jaccard
 import datetime
 
-"""
-What are the big problems with this library right now?
-- I cannot train extra data as is at the moment.
-- I have to recast the data onto a 0-N scale, which is unnecessary.
-"""
-
 class LSH(object):
 	def __init__(self, dims, bands = 100, per_band = 5, assignment_name = "lsh_example"):
 		self.assignment_name = assignment_name
@@ -60,6 +54,10 @@ class LSH(object):
 		print "Finished %s" % which_process
 	
 	def load_cached_data(self):
+		"""Loads cached data associated with assignment_name, 
+		if any exists.
+		
+		"""
 		t = time()
 		if self.verbose:
 			print "Loading cached data."
@@ -71,22 +69,18 @@ class LSH(object):
 	
 	
 	def trained_files(self):
-		#temp_dir = os.path.abspath("temp/")
+		"""Returns a set of trained file paths."""
 		return self.__loaded_files
 	
 	def is_cached(self):
-		"""Checks to see if we have cached any information
-		about the current assignment_name.  Returns
-		True if there is information, and False otherwise.
-		Does not check to see if we've trained any data
-		yet."""
+		"""Returns True if there is a cache for this assignment_name,
+		and False otherwise."""
 		lsh_info = os.path.abspath("temp/%s-lsh.pickle" \
 						% self.assignment_name)
 		return os.path.exists(lsh_info)
 	
 	def is_trained(self):
-		"""Checks to see if the current model has been
-		trained yet. """
+		"""Returns True if the current object has been trained."""
 		return self.__trained
 	
 	def load_cached_or_train(self, data):
@@ -98,9 +92,11 @@ class LSH(object):
 	
 	def bin_data(self, data):
 		"""Trains the LSH object on the available data, storing the
-		results in object.bins.  It is not really wise to touch
-		object.bins - stick to finding near neighbors with
-		object.near_neighbors(query_index, query_vector) instead.
+		results in bins.
+		
+		It is not really wise to touch object.bins - stick to finding 
+		near neighbors with object.near_neighbors(query_index, query_vector)
+		instead.
 		"""
 		
 		# the directory temp/ is for storing the serialized processed data.
@@ -164,47 +160,6 @@ class LSH(object):
 		if self.verbose: print "Finished Reducing the data. Took %s seconds"\
 												% (round(time() - t, 2))
 		self.__trained = True
-		
-		# 
-		# if not self.__trained:
-		# 	
-		# 	if verbose: print "Retraining model ... (from cache or from scratch)"
-		# 	
-		# 	temp_path = os.path.abspath("temp/")
-		# 	
-		# 	if not os.path.exists(temp_path):
-		# 		os.mkdir(temp_path)
-		# 	
-		# 	remap_data = False
-		# 	
-		# 	# Check to see if we've already mapped this data set.  If so,
-		# 	# then move onto reducing the data.  Else fire up a a few processes.
-		# 	os.chdir(os.path.abspath("temp/"))
-		# 	
-		# 	eligible_paths = os.listdir(".")
-		# 	bin_files = [f for f in eligible_paths \
-		# 	 	if self.assignment_name in f and 
-		# 		   "bins" in f]
-		# 	
-		# 	if len(bin_files) == 0: remap_data = True
-		# 	
-		# 	os.chdir(os.path.abspath("../"))
-		# 	
-		# 	if not os.path.exists(os.path.abspath("temp/%s-lsh.pickle" % \
-		# 											self.assignment_name)):
-		# 		remap_data = True
-		# 	
-		# 	# Map the data, if you haven't already.
-		# 	
-		# 	if verbose: print "Reducing data."
-		# 	t = time()
-		# 	
-		# 	self.__combine_bins()
-		# 	
-		# 	if verbose: print "Finished Reducing the data. Took %s seconds"\
-		# 											% (round(time() - t, 2))
-		# 	
-		# 	self.__trained = True         
 	
 	def __save_object_specific_data(self):
 		"""Used to cache parameters and the ensemble
@@ -219,8 +174,7 @@ class LSH(object):
 		cPickle.dump(misc_values, f)
 	
 	def __combine_bins(self):
-		"""Combines all the bins from the multiple processes,
-		each of which"""
+		"""Combines all the bins from the multiple processes."""
 		bins = []
 		
 		######################################################
@@ -259,7 +213,8 @@ class LSH(object):
 		self.ensemble = misc_values['ensemble']
 	
 	def near_neighbors(self, ind, query):
-		"""Returns the near neighbors associated with ind, whose data is query."""
+		"""Returns a set of near neighbors associated with ind, 
+		whose data is query."""
 		if self.__trained:
 			sig = [min(j for j in [mh[i] for i in query]) \
 					for mh in self.ensemble]
@@ -272,6 +227,3 @@ class LSH(object):
 			return nn
 		else:
 			raise Exception, "Object not trained yet."
-	
-
-	
