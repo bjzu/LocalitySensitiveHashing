@@ -1,4 +1,4 @@
-#!/usr/bin -i
+#!/usr/bin
 from time import time
 import multiprocessing
 from random import shuffle
@@ -10,7 +10,6 @@ import datetime
 class LSH(object):
 	def __init__(self, dims, bands = 100, per_band = 5, assignment_name = "lsh_example"):
 		self.assignment_name = assignment_name
-		#self.func = fcn
 		self.bands = bands
 		self.per_band = per_band
 		self.dims = dims
@@ -214,7 +213,8 @@ class LSH(object):
 	
 	def near_neighbors(self, ind, query):
 		"""Returns a set of near neighbors associated with ind, 
-		whose data is query."""
+		whose data is a set of integers representing item_ids,
+		called query."""
 		if self.__trained:
 			sig = [min(j for j in [mh[i] for i in query]) \
 					for mh in self.ensemble]
