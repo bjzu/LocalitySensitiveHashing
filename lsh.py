@@ -36,7 +36,7 @@ class LSH(object):
 		mh = dict((i,j) for i, j in enumerate(n))
 		return mh
 	
-	def __bin_data_queue(self, data, q, ens, bands, per_band):
+	def __bin_data_queue(self, data, q):
 		"""The workers created in self.bin_data() get this function as
 		an argument.  It pops indices off of the shared queue and
 		processes them, one by one, then saves batches of signatures
@@ -46,19 +46,19 @@ class LSH(object):
 				datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
 				)
 		sigs = []
-		print "Started %s" % (which_process)
+		if self.verbose: print "Started %s" % (which_process)
 		while not q.empty():
 			ind = q.get()
 			pt = data[ind]
 			sig = [min(j for j in [mh[i] for i in pt]) \
-					for mh in ens]
-			for b in range(bands):
-				minhash = tuple(sig[(b*per_band):((b+1)*per_band)])
+					for mh in self.ensemble]
+			for b in range(self.bands):
+				minhash = tuple(sig[(b*self.per_band):((b+1)*self.per_band)])
 				sigs.append([b, ind, minhash])
 		bins = open("temp/%s-bins.pickle" % (which_process), 'w')
 		cPickle.dump(sigs, bins)
 		bins.close()
-		print "Finished %s" % which_process
+		if self.verbose: print "Finished %s" % which_process
 	
 	def load_cached_data(self):
 		"""Loads cached data associated with assignment_name, 
@@ -99,7 +99,7 @@ class LSH(object):
 	def delete_all_data(self):
 		pass
 	
-	def bin_data(self, data):
+	def bin_data(self, data, dims = None):
 		"""Trains the LSH object on the available data, storing the
 		results in bins.
 		
@@ -128,6 +128,10 @@ class LSH(object):
 		############################################################
 		
 		if not self.__trained:
+			if dims == None:
+				raise ValueError, \
+					"you must specify the dims on this untrained model."
+			self.dims = dims
 			self.ensemble = [self.__h_ens(self.dims) \
 					for i in range(bands*per_band)]
 		
@@ -144,7 +148,7 @@ class LSH(object):
 		ens = self.ensemble
 		
 		results = [multiprocessing.Process(target=self.__bin_data_queue, \
-			args=(data, queue, ens, bands, per_band), \
+			args=(data, queue), \
 			name = "%s-worker_%s" % (self.assignment_name, str(i))) \
 			for i in range(multiprocessing.cpu_count())]         
 		for i in results:
