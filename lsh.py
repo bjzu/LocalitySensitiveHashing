@@ -8,11 +8,19 @@ from distance import jaccard
 import datetime
 
 class LSH(object):
-	def __init__(self, dims, bands = 100, per_band = 5, assignment_name = "lsh_example"):
+	def __init__(self, bands = 100, per_band = 5, assignment_name = "lsh_example"):
+		if type(bands) != int:
+			raise TypeError, "bands must be an integer."
+		if type(per_band) != int:
+			raise TypeError, "per_band must be an integer."
+		if bands < 1:
+			raise ValueError, "bands must be greater than 0."
+		if per_band < 1:
+			raise ValueError, "per_band must be greater than 0."
 		self.assignment_name = assignment_name
 		self.bands = bands
 		self.per_band = per_band
-		self.dims = dims
+		self.dims = None
 		self.__trained = False
 		self.__loaded_files = set()
 		self.bins = {}
@@ -66,7 +74,6 @@ class LSH(object):
 		if self.verbose:
 			self.__nice_time(t)
 	
-	
 	def trained_files(self):
 		"""Returns a set of trained file paths."""
 		return self.__loaded_files
@@ -89,6 +96,9 @@ class LSH(object):
 		else:
 			self.bin_data(data)
 	
+	def delete_all_data(self):
+		pass
+	
 	def bin_data(self, data):
 		"""Trains the LSH object on the available data, storing the
 		results in bins.
@@ -107,7 +117,7 @@ class LSH(object):
 		if not os.path.exists(temp_path):
 			os.mkdir(temp_path)
 		
-		if self.verbose: 
+		if self.verbose:
 			print "Mapping new data.  Might take a few minutes."
 		
 		bands = self.bands
@@ -168,10 +178,22 @@ class LSH(object):
 		misc_values['bands'] = self.bands
 		misc_values['per_band'] = self.per_band
 		misc_values['ensemble'] = self.ensemble
+		misc_values['dims'] = self.dims
 		
 		f = open("temp/%s-lsh.pickle" % self.assignment_name, "w")
 		cPickle.dump(misc_values, f)
 	
+	def __load_object_specific_data(self):
+		"""Used if we've already cached an lsh machine.  This function
+		reloads some serialized parameters."""
+		f = open("temp/%s-lsh.pickle" % self.assignment_name, "r")
+		misc_values = cPickle.loads(f.read())
+		self.assignment_name = misc_values['assignment_name']
+		self.bands = misc_values['bands']
+		self.per_band = misc_values['per_band']
+		self.ensemble = misc_values['ensemble']
+		self.dims = misc_values['dims']
+
 	def __combine_bins(self):
 		"""Combines all the bins from the multiple processes."""
 		bins = []
@@ -200,16 +222,6 @@ class LSH(object):
 				self.bins[b][minhash].add(index)
 		
 		os.chdir(os.path.abspath("../"))
-	
-	def __load_object_specific_data(self):
-		"""Used if we've already cached an lsh machine.  This function
-		reloads some serialized parameters."""
-		f = open("temp/%s-lsh.pickle" % self.assignment_name, "r")
-		misc_values = cPickle.loads(f.read())
-		self.assignment_name = misc_values['assignment_name']
-		self.bands = misc_values['bands']
-		self.per_band = misc_values['per_band']
-		self.ensemble = misc_values['ensemble']
 	
 	def near_neighbors(self, ind, query):
 		"""Returns a set of near neighbors associated with ind, 
